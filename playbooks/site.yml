@@ -1,0 +1,10 @@
+---
+- name: Bootstrap localhost (no roles yet)
+  hosts: localhost
+  connection: local
+  become: true
+
+  tasks:
+    - name: Placeholder task
+      debug:
+        msg: "Ansible is working! Add roles to site.yml as you develop them."

@@ -1,0 +1,9 @@
+---
+- import_tasks: datasets.yml
+  tags: zfs_datasets
+
+- import_tasks: zfs-setup.yml
+  tags: zfs_setup
+
+- import_tasks: backup.yml
+  tags: zfs_backup

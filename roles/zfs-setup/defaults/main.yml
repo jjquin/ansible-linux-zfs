@@ -1,0 +1,170 @@
+---
+# List of common datasets managed directly
+zfs_datasets:
+  - name: zroot/Reserved
+    properties:
+      refreservation: 100G
+
+  - name: zroot/ROOT
+    properties:
+      exec: on
+      setuid: on
+      devices: on
+      org.zfsbootmenu:active: on
+      org.zfsbootmenu:commandline: "quiet"
+
+  - name: zroot/home
+    properties:
+      exec: on
+      mountpoint: /home
+      canmount: no
+
+  - name: zroot/home/jj
+    properties:
+      canmount: no
+
+  - name: zroot/home/jj/Vaults
+    properties:
+      recordsize: 16K
+      compression: zstd-1
+      systemd.after: home-jj.mount
+      exec: off
+
+  - name: zroot/home/jj/Downloads
+    properties:
+      systemd.after: home-jj.mount
+
+  - name: zroot/home/jj/Code
+    properties:
+      recordsize: 16K
+      compression: zstd-1
+      systemd.after: home-jj.mount
+
+  - name: zroot/home/jj/Media
+    properties:
+      recordsize: 1M
+      compression: zle
+      systemd.after: home-jj.mount
+      exec: off
+
+  - name: zroot/home/jj/Books
+    properties:
+      recordsize: 64K
+      compression: zstd-1
+      systemd.after: home-jj.mount
+      exec: off
+
+  - name: zroot/home/jj/flatpak
+    properties:
+      mountpoint: /home/jj/.var
+      systemd.after: home-jj.mount
+
+  - name: zroot/home/leah
+    properties:
+      canmount: no
+
+  - name: zroot/home/leah/Documents
+    properties:
+      recordsize: 16K
+      compression: zstd-1
+      systemd.after: home-leah.mount
+
+  - name: zroot/home/leah/Downloads
+    properties:
+      systemd.after: home-leah.mount
+
+  - name: zroot/home/leah/Media
+    properties:
+      recordsize: 1M
+      compression: zle
+      systemd.after: home-leah.mount
+
+  - name: zroot/home/leah/flatpak
+    properties:
+      mountpoint: /home/leah/.var
+      systemd.after: home-leah.mount
+
+  - name: zroot/home/Shared
+    properties:
+      mountpoint: /home/Shared
+      exec: off
+
+  - name: zroot/home/Shared/Documents
+    properties:
+      recordsize: 16K
+      compression: zstd-1
+
+  - name: zroot/home/Shared/Music
+    properties:
+      recordsize: 1M
+      compression: zle
+
+  - name: zroot/home/Shared/Pictures
+    properties:
+      recordsize: 1M
+      compression: zle
+
+  - name: zroot/virt
+    properties:
+      exec: on
+      devices: on
+      setuid: on
+      mountpoint: /var/lib
+      canmount: no
+
+  - name: zroot/virt/docker
+    properties: {}
+
+  - name: zroot/virt/podman
+    properties: {}
+
+  - name: zroot/virt/libvirt
+    properties:
+      recordsize: 1M
+      compression: zle
+
+  - name: zroot/pkgs
+    properties:
+      exec: on
+
+  - name: zroot/pkgs/flatpak
+    properties:
+      mountpoint: /var/lib/flatpak
+
+  - name: zroot/pkgs/nix
+    properties:
+      mountpoint: /nix
+
+# List of distroids (distro IDs) to manage
+zfs_distroids:
+  - manjaro
+  - arch
+  - debian
+
+# Relative datasets to create for each distroid
+zfs_distroid_datasets:
+  - name: ""
+    properties:
+      mountpoint: /
+      canmount: noauto
+      org.zfsbootmenu:bootfs: on
+  - name: var
+    properties:
+      mountpoint: none
+      exec: off
+      devices: off
+      setuid: off
+  - name: var/log
+    properties:
+      mountpoint: legacy
+  - name: home
+    properties:
+      devices: off
+      setuid: off
+      mountpoint: none
+  - name: home/jj
+    properties:
+      mountpoint: legacy
+  - name: home/leah
+    properties:
+      mountpoint: legacy

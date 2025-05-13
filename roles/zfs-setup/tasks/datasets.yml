@@ -1,0 +1,49 @@
+---
+# Ensure generic datasets exist
+- name: Ensure common ZFS datasets exist and have correct properties
+  community.general.zfs:
+    name: "{{ item.name }}"
+    state: present
+    extra_zfs_properties: "{{ item.properties }}"
+  loop: "{{ zfs_datasets }}"
+
+# Ensure distroid datasets exist for each distroid
+- name: Ensure distroid ZFS datasets exist and have correct properties
+  community.general.zfs:
+    name: "zroot/ROOT/{{ distroid }}{{ '/' + item.name if item.name != '' else '' }}"
+    state: present
+    extra_zfs_properties: "{{ item.properties }}"
+  loop: "{{ zfs_distroid_datasets }}"
+  loop_control:
+    loop_var: item
+  vars:
+    distroid: "{{ distroid_item }}"
+  with_items: "{{ zfs_distroids }}"
+
+# Gather all ZFS datasets (for reporting unmanaged datasets)
+- name: Gather all ZFS datasets
+  community.general.zfs_facts:
+    recurse: true
+  register: zfs_facts
+
+- name: Build list of managed datasets
+  set_fact:
+    managed_datasets: >-
+      {{
+        zfs_datasets | map(attribute='name') | list +
+        zfs_distroids | map('extract', zfs_distroid_datasets) | map('map', attribute='name') | sum(start=[]) | map('regex_replace', '^', 'zroot/ROOT/') | list
+      }}
+
+- name: Extract existing dataset names
+  set_fact:
+    existing_datasets: "{{ zfs_facts.ansible_facts.ansible_zfs_datasets | map(attribute='name') | list }}"
+  tags: [zfs_datasets, zfs_distroid_datasets]
+
+- name: Find unmanaged datasets
+  set_fact:
+    unmanaged_datasets: "{{ existing_datasets | difference(managed_datasets) }}"
+
+- name: Report unmanaged datasets
+  debug:
+    msg: "Unmanaged ZFS datasets: {{ unmanaged_datasets }}"
+  when: unmanaged_datasets | length > 0
