@@ -171,31 +171,3 @@ zfs_distroid_datasets:
     properties:
       mountpoint: legacy
     legacy_mount: /home/leah
-
-sanoid_templates:
-  template_system:
-    hourly: 24
-    daily: 7
-    weekly: 4
-    monthly: 3
-    autosnap: 'yes'
-    autoprune: 'yes'
-  template_data:
-    hourly: 48
-    daily: 30
-    weekly: 12
-    monthly: 12
-    autosnap: 'yes'
-    autoprune: 'yes'
-  template_archive_system:
-    daily: 30
-    monthly: 3
-    yearly: 1
-    autosnap: 'no'
-    autoprune: 'yes'
-  template_archive_data:
-    daily: 168   # 6 months
-    monthly: 12
-    yearly: 2
-    autosnap: 'no'
-    autoprune: 'yes'

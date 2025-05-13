@@ -1,5 +1,5 @@
 ---
-# defaults/sanoid.yml
+# defaults/backup.yml
 
 sanoid_datasets:
   - name: zroot
