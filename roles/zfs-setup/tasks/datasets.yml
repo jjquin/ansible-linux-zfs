@@ -47,3 +47,16 @@
   debug:
     msg: "Unmanaged ZFS datasets: {{ unmanaged_datasets }}"
   when: unmanaged_datasets | length > 0
+
+- name: Ensure fstab entries for distroid legacy mountpoints
+  lineinfile:
+    path: /etc/fstab
+    line: "zroot/ROOT/{{ distroid }}/{{ item.name }} {{ item.legacy_mount }} zfs defaults 0 0"
+    state: present
+    create: yes
+  loop: "{{ zfs_distroid_datasets | selectattr('legacy_mount', 'defined') | list }}"
+  loop_control:
+    label: "{{ distroid }}/{{ item.name }}"
+  vars:
+    distroid: "{{ distroid_item }}"
+  with_items: "{{ zfs_distroids }}"

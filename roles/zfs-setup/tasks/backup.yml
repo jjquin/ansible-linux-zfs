@@ -1,0 +1,92 @@
+---
+- name: Ensure /etc/sanoid directory exists
+  file:
+    path: /etc/sanoid
+    state: directory
+    mode: '0755'
+
+- name: Backup existing sanoid.conf if sanoid-defaults.conf does not exist
+  copy:
+    src: /etc/sanoid/sanoid.conf
+    dest: /etc/sanoid/sanoid-defaults.conf
+    remote_src: yes
+  when: not ansible_facts['files']['/etc/sanoid/sanoid-defaults.conf'] is defined
+
+# Main pool dataset sections
+- name: Generate sanoid dataset sections for zroot
+  community.general.ini_file:
+    path: /etc/sanoid/sanoid.conf
+    section: "{{ item.name }}"
+    option: use_template
+    value: "template_{{ item.template }}"
+    mode: '0644'
+    state: present
+  loop: "{{ sanoid_datasets }}"
+
+# Distroid dataset sections for each distroid
+- name: Generate sanoid distroid dataset sections for zroot
+  community.general.ini_file:
+    path: /etc/sanoid/sanoid.conf
+    section: "zroot/ROOT/{{ distroid }}/{{ item.name }}"
+    option: use_template
+    value: "template_{{ item.template }}"
+    mode: '0644'
+    state: present
+  loop: "{{ sanoid_distroid_datasets }}"
+  loop_control:
+    loop_var: item
+  vars:
+    distroid: "{{ distroid_item }}"
+  with_items: "{{ zfs_distroids }}"
+
+# Archive pool dataset sections
+- name: Generate sanoid dataset sections for archive pools
+  community.general.ini_file:
+    path: /etc/sanoid/sanoid.conf
+    section: "{{ archive_pool }}/backup/{{ hostname }}/{{ item.name }}"
+    option: use_template
+    value: "template_archive_{{ item.template }}"
+    mode: '0644'
+    state: present
+  loop: "{{ sanoid_datasets }}"
+  loop_control:
+    loop_var: item
+  vars:
+    archive_pool: "{{ archive_pool_item }}"
+    hostname: "{{ hostname_item }}"
+  with_items: "{{ archive_pools }}"
+  with_nested:
+    - "{{ archive_pools }}"
+    - "{{ backup_hostnames }}"
+
+- name: Generate sanoid distroid dataset sections for archive pools
+  community.general.ini_file:
+    path: /etc/sanoid/sanoid.conf
+    section: "{{ archive_pool }}/backup/{{ hostname }}/ROOT/{{ distroid }}/{{ item.name }}"
+    option: use_template
+    value: "template_archive_{{ item.template }}"
+    mode: '0644'
+    state: present
+  loop: "{{ sanoid_distroid_datasets }}"
+  loop_control:
+    loop_var: item
+  vars:
+    archive_pool: "{{ archive_pool_item }}"
+    hostname: "{{ hostname_item }}"
+    distroid: "{{ distroid_item }}"
+  with_items: "{{ zfs_distroids }}"
+  with_nested:
+    - "{{ archive_pools }}"
+    - "{{ backup_hostnames }}"
+    - "{{ zfs_distroids }}"
+
+# Template sections
+- name: Generate sanoid template sections
+  community.general.ini_file:
+    path: /etc/sanoid/sanoid.conf
+    section: "template_{{ item.0 }}"
+    option: "{{ item.1.key }}"
+    value: "{{ item.1.value }}"
+    mode: '0644'
+    state: present
+  loop: "{{ sanoid_templates | dict2items | subelements('value') }}"
