@@ -38,7 +38,7 @@
     loop_var: item
   vars:
     distroid: "{{ distroid_item }}"
-  with_items: "{{ zfs_distroids }}"
+  with_items: "{{ zfs_backup_distroids }}"
 
 # Archive pool dataset sections
 - name: Generate sanoid dataset sections for archive pools
@@ -75,11 +75,11 @@
     archive_pool: "{{ archive_pool_item }}"
     hostname: "{{ hostname_item }}"
     distroid: "{{ distroid_item }}"
-  with_items: "{{ zfs_distroids }}"
+  with_items: "{{ zfs_backup_distroids }}"
   with_nested:
     - "{{ archive_pools }}"
     - "{{ backup_hostnames }}"
-    - "{{ zfs_distroids }}"
+    - "{{ zfs_backup_distroids }}"
 
 # Template sections
 - name: Generate sanoid template sections

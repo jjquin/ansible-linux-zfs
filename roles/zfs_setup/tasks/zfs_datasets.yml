@@ -4,41 +4,41 @@
   community.general.zfs:
     name: "{{ item.name }}"
     state: present
-    extra_zfs_properties: "{{ item.properties }}"
-  loop: "{{ zfs_datasets }}"
+    extra_zfs_setup_properties: "{{ item.properties }}"
+  loop: "{{ zfs_setup_datasets }}"
 
 # Ensure distroid datasets exist for each distroid
 - name: Ensure distroid ZFS datasets exist and have correct properties
   community.general.zfs:
     name: "zroot/ROOT/{{ distroid }}{{ '/' + item.name if item.name != '' else '' }}"
     state: present
-    extra_zfs_properties: "{{ item.properties }}"
-  loop: "{{ zfs_distroid_datasets }}"
+    extra_zfs_setup_properties: "{{ item.properties }}"
+  loop: "{{ zfs_setup_distroid_datasets }}"
   loop_control:
     loop_var: item
   vars:
     distroid: "{{ distroid_item }}"
-  with_items: "{{ zfs_distroids }}"
+  with_items: "{{ zfs_setup_distroids }}"
 
 # Gather all ZFS datasets (for reporting unmanaged datasets)
 - name: Gather all ZFS datasets
-  community.general.zfs_facts:
+  community.general.zfs_setup_facts:
     name: zroot
     recurse: true
-  register: zfs_facts
+  register: zfs_setup_facts
 
 - name: Build list of managed datasets
   ansible.builtin.set_fact:
     managed_datasets: >-
       {{
-        zfs_datasets | map(attribute='name') | list +
-        zfs_distroids | map('extract', zfs_distroid_datasets) | map('map', attribute='name') | sum(start=[]) | map('regex_replace', '^', 'zroot/ROOT/') | list
+        zfs_setup_datasets | map(attribute='name') | list +
+        zfs_setup_distroids | map('extract', zfs_setup_distroid_datasets) | map('map', attribute='name') | sum(start=[]) | map('regex_replace', '^', 'zroot/ROOT/') | list
       }}
 
 - name: Extract existing dataset names
   ansible.builtin.set_fact:
-    existing_datasets: "{{ zfs_facts.ansible_facts.ansible_zfs_datasets | map(attribute='name') | list }}"
-  tags: [zfs_datasets, zfs_distroid_datasets]
+    existing_datasets: "{{ zfs_setup_facts.ansible_facts.ansible_zfs_setup_datasets | map(attribute='name') | list }}"
+  tags: [zfs_setup_datasets, zfs_setup_distroid_datasets]
 
 - name: Find unmanaged datasets
   ansible.builtin.set_fact:
@@ -56,9 +56,9 @@
     state: present
     create: yes
     mode: '0644'
-  loop: "{{ zfs_distroid_datasets | selectattr('legacy_mount', 'defined') | list }}"
+  loop: "{{ zfs_setup_distroid_datasets | selectattr('legacy_mount', 'defined') | list }}"
   loop_control:
     label: "{{ distroid }}/{{ item.name }}"
   vars:
     distroid: "{{ distroid_item }}"
-  with_items: "{{ zfs_distroids }}"
+  with_items: "{{ zfs_setup_distroids }}"

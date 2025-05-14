@@ -16,24 +16,24 @@
     path: "/etc/zfs/zfs-list.cache/{{ item }}"
     state: touch
     mode: '0644'
-  loop: "{{ zfs_pools }}"
+  loop: "{{ zfs_setup_pools }}"
 
 - name: Ensure symlink for history_event-zfs-list-cacher.sh exists and is correct
   ansible.builtin.file:
-    src: "{{ zfs_list_cacher_target }}"
-    dest: "{{ zfs_list_cacher_symlink }}"
+    src: "{{ zfs_setup_list_cacher_target }}"
+    dest: "{{ zfs_setup_list_cacher_symlink }}"
     state: link
     force: true
 
 - name: Gather ZFS pool facts
   community.general.zpool_facts:
-    pool: "{{ zfs_pool }}"
+    pool: "{{ zfs_setup_pool }}"
   register: zpool_facts
 
 - name: Set zpool cachefile if needed
-  ansible.builtin.command: "zpool set cachefile=/etc/zfs/zpool.cache {{ zfs_pool }}"
+  ansible.builtin.command: "zpool set cachefile=/etc/zfs/zpool.cache {{ zfs_setup_pool }}"
   changed_when: false
-  when: zpool_facts.ansible_facts.ansible_zfs_pools[0].cachefile != "/etc/zfs/zpool.cache"
+  when: zpool_facts.ansible_facts.ansible_zfs_setup_pools[0].cachefile != "/etc/zfs/zpool.cache"
 
 - name: Stat /etc/hostid
   ansible.builtin.stat:
@@ -56,13 +56,13 @@
           hostid_stat.stat.exists and
           (hostid_slurp.content | b64decode)
           !=
-          (zfs_hostid | lower | regex_replace('^0x', '') | to_uuid | to_bytes(length=4, byteorder='big'))
+          (zfs_setup_hostid | lower | regex_replace('^0x', '') | to_uuid | to_bytes(length=4, byteorder='big'))
         )
       }}
   when: hostid_stat.stat.exists
 
 - name: Generate /etc/hostid if missing or incorrect
-  ansible.builtin.command: "zgenhostid -f {{ zfs_hostid }}"
+  ansible.builtin.command: "zgenhostid -f {{ zfs_setup_hostid }}"
   changed_when: true
   when: hostid_needs_update | default(true)
 
@@ -92,7 +92,7 @@
   ansible.builtin.copy:
     dest: /etc/modprobe.d/zfs.conf
     content: |
-      options zfs zfs_arc_max={{ (ansible_memtotal_mb * 1024 * 1024 * zfs_arc_max_percent) | int }}
+      options zfs zfs_setup_arc_max={{ (ansible_memtotal_mb * 1024 * 1024 * zfs_setup_arc_max_percent) | int }}
     mode: '0644'
   notify: Reload systemd
 
@@ -128,18 +128,18 @@
     - /etc/systemd/system/zfs-scrub@.service
     - /usr/lib/systemd/system/zfs-scrub@.service
     - /lib/systemd/system/zfs-scrub@.service
-  register: zfs_scrub_service_checks
+  register: zfs_setup_scrub_service_checks
 
 - name: Set fact if zfs-scrub@.service exists
   ansible.builtin.set_fact:
-    zfs_scrub_service_exists: "{{ zfs_scrub_service_checks.results | selectattr('stat.exists') | list | length > 0 }}"
+    zfs_setup_scrub_service_exists: "{{ zfs_setup_scrub_service_checks.results | selectattr('stat.exists') | list | length > 0 }}"
 
 - name: Copy zfs-scrub@.service if missing everywhere
   ansible.builtin.copy:
     src: files/zfs-scrub@.service
     dest: /etc/systemd/system/zfs-scrub@.service
     mode: '0644'
-  when: not zfs_scrub_service_exists
+  when: not zfs_setup_scrub_service_exists
 
 # Check for zfs-scrub-monthly@.timer in all standard locations
 - name: Check for zfs-scrub-monthly@.timer in all standard locations
@@ -149,18 +149,18 @@
     - /etc/systemd/system/zfs-scrub-monthly@.timer
     - /usr/lib/systemd/system/zfs-scrub-monthly@.timer
     - /lib/systemd/system/zfs-scrub-monthly@.timer
-  register: zfs_scrub_monthly_timer_checks
+  register: zfs_setup_scrub_monthly_timer_checks
 
 - name: Set fact if zfs-scrub-monthly@.timer exists
   ansible.builtin.set_fact:
-    zfs_scrub_monthly_timer_exists: "{{ zfs_scrub_monthly_timer_checks.results | selectattr('stat.exists') | list | length > 0 }}"
+    zfs_setup_scrub_monthly_timer_exists: "{{ zfs_setup_scrub_monthly_timer_checks.results | selectattr('stat.exists') | list | length > 0 }}"
 
 - name: Copy zfs-scrub-monthly@.timer if missing everywhere
   ansible.builtin.copy:
     src: files/zfs-scrub-monthly@.timer
     dest: /etc/systemd/system/zfs-scrub-monthly@.timer
     mode: '0644'
-  when: not zfs_scrub_monthly_timer_exists
+  when: not zfs_setup_scrub_monthly_timer_exists
 
 # Enable the monthly scrub timer for all pools
 - name: Enable ZFS monthly scrub timer for all pools
@@ -168,4 +168,4 @@
     name: "zfs-scrub-monthly@{{ item }}.timer"
     enabled: true
     state: started
-  loop: "{{ zfs_pools }}"
+  loop: "{{ zfs_setup_pools }}"

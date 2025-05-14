@@ -1,6 +1,6 @@
 ---
 # List of common datasets managed directly
-zfs_datasets:
+zfs_setup_datasets:
   - name: zroot/Reserved
     properties:
       refreservation: 100G
@@ -136,13 +136,13 @@ zfs_datasets:
       mountpoint: /nix
 
 # List of distroids (distro IDs) to manage
-zfs_distroids:
+zfs_setup_distroids:
   - manjaro
   - arch
   - debian
 
 # Relative datasets to create for each distroid
-zfs_distroid_datasets:
+zfs_setup_distroid_datasets:
   - name: ""
     properties:
       mountpoint: /
@@ -172,12 +172,12 @@ zfs_distroid_datasets:
       mountpoint: legacy
     legacy_mount: /home/leah
 
-zfs_pools:
+zfs_setup_pools:
   - zroot
   - zarchive-4
   - zarchive-5
 
-zfs_hostid: dadab0de
+zfs_setup_hostid: dadab0de
 
-zfs_list_cacher_target: /usr/lib/zfs-linux/zed.d/history_event-zfs-list-cacher.sh
-zfs_list_cacher_symlink: /etc/zfs/zed.d/history_event-zfs-list-cacher.sh
+zfs_setup_list_cacher_target: /usr/lib/zfs-linux/zed.d/history_event-zfs-list-cacher.sh
+zfs_setup_list_cacher_symlink: /etc/zfs/zed.d/history_event-zfs-list-cacher.sh
