@@ -13,93 +13,93 @@ zfs_datasets:
       org.zfsbootmenu:active: on
       org.zfsbootmenu:commandline: "quiet"
 
-  - name: zroot/home
+  - name: zroot/data
     properties:
       exec: on
       mountpoint: /home
       canmount: no
 
-  - name: zroot/home/jj
+  - name: zroot/data/jj
     properties:
       canmount: no
 
-  - name: zroot/home/jj/Vaults
+  - name: zroot/data/jj/Vaults
     properties:
       recordsize: 16K
       compression: zstd-1
       systemd.after: home-jj.mount
       exec: off
 
-  - name: zroot/home/jj/Downloads
+  - name: zroot/data/jj/Downloads
     properties:
       systemd.after: home-jj.mount
 
-  - name: zroot/home/jj/Code
+  - name: zroot/data/jj/Code
     properties:
       recordsize: 16K
       compression: zstd-1
       systemd.after: home-jj.mount
 
-  - name: zroot/home/jj/Media
+  - name: zroot/data/jj/Media
     properties:
       recordsize: 1M
       compression: zle
       systemd.after: home-jj.mount
       exec: off
 
-  - name: zroot/home/jj/Books
+  - name: zroot/data/jj/Books
     properties:
       recordsize: 64K
       compression: zstd-1
       systemd.after: home-jj.mount
       exec: off
 
-  - name: zroot/home/jj/flatpak
+  - name: zroot/data/jj/flatpak
     properties:
       mountpoint: /home/jj/.var
       systemd.after: home-jj.mount
 
-  - name: zroot/home/leah
+  - name: zroot/data/leah
     properties:
       canmount: no
 
-  - name: zroot/home/leah/Documents
+  - name: zroot/data/leah/Documents
     properties:
       recordsize: 16K
       compression: zstd-1
       systemd.after: home-leah.mount
 
-  - name: zroot/home/leah/Downloads
+  - name: zroot/data/leah/Downloads
     properties:
       systemd.after: home-leah.mount
 
-  - name: zroot/home/leah/Media
+  - name: zroot/data/leah/Media
     properties:
       recordsize: 1M
       compression: zle
       systemd.after: home-leah.mount
 
-  - name: zroot/home/leah/flatpak
+  - name: zroot/data/leah/flatpak
     properties:
       mountpoint: /home/leah/.var
       systemd.after: home-leah.mount
 
-  - name: zroot/home/Shared
+  - name: zroot/data/Shared
     properties:
       mountpoint: /home/Shared
       exec: off
 
-  - name: zroot/home/Shared/Documents
+  - name: zroot/data/Shared/Documents
     properties:
       recordsize: 16K
       compression: zstd-1
 
-  - name: zroot/home/Shared/Music
+  - name: zroot/data/Shared/Music
     properties:
       recordsize: 1M
       compression: zle
 
-  - name: zroot/home/Shared/Pictures
+  - name: zroot/data/Shared/Pictures
     properties:
       recordsize: 1M
       compression: zle
@@ -171,3 +171,13 @@ zfs_distroid_datasets:
     properties:
       mountpoint: legacy
     legacy_mount: /home/leah
+
+zfs_pools:
+  - zroot
+  - zarchive-4
+  - zarchive-5
+
+zfs_hostid: dadab0de
+
+zfs_list_cacher_target: /usr/lib/zfs-linux/zed.d/history_event-zfs-list-cacher.sh
+zfs_list_cacher_symlink: /etc/zfs/zed.d/history_event-zfs-list-cacher.sh

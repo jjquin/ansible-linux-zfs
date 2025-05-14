@@ -23,11 +23,12 @@
 # Gather all ZFS datasets (for reporting unmanaged datasets)
 - name: Gather all ZFS datasets
   community.general.zfs_facts:
+    name: zroot
     recurse: true
   register: zfs_facts
 
 - name: Build list of managed datasets
-  set_fact:
+  ansible.builtin.set_fact:
     managed_datasets: >-
       {{
         zfs_datasets | map(attribute='name') | list +
@@ -35,25 +36,26 @@
       }}
 
 - name: Extract existing dataset names
-  set_fact:
+  ansible.builtin.set_fact:
     existing_datasets: "{{ zfs_facts.ansible_facts.ansible_zfs_datasets | map(attribute='name') | list }}"
   tags: [zfs_datasets, zfs_distroid_datasets]
 
 - name: Find unmanaged datasets
-  set_fact:
+  ansible.builtin.set_fact:
     unmanaged_datasets: "{{ existing_datasets | difference(managed_datasets) }}"
 
 - name: Report unmanaged datasets
-  debug:
+  ansible.builtin.debug:
     msg: "Unmanaged ZFS datasets: {{ unmanaged_datasets }}"
   when: unmanaged_datasets | length > 0
 
 - name: Ensure fstab entries for distroid legacy mountpoints
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/fstab
     line: "zroot/ROOT/{{ distroid }}/{{ item.name }} {{ item.legacy_mount }} zfs defaults 0 0"
     state: present
     create: yes
+    mode: '0644'
   loop: "{{ zfs_distroid_datasets | selectattr('legacy_mount', 'defined') | list }}"
   loop_control:
     label: "{{ distroid }}/{{ item.name }}"

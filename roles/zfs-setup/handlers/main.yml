@@ -1,3 +1,13 @@
-#SPDX-License-Identifier: MIT-0
 ---
-# handlers file for zfs-setup
+- name: Regenerate initramfs
+  ansible.builtin.command: dracut --force --regenerate-all
+  changed_when: true
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart journald
+  ansible.builtin.systemd:
+    name: systemd-journald
+    state: restarted

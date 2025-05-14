@@ -1,15 +1,16 @@
 ---
 - name: Ensure /etc/sanoid directory exists
-  file:
+  ansible.builtin.file:
     path: /etc/sanoid
     state: directory
     mode: '0755'
 
 - name: Backup existing sanoid.conf if sanoid-defaults.conf does not exist
-  copy:
+  ansible.builtin.copy:
     src: /etc/sanoid/sanoid.conf
     dest: /etc/sanoid/sanoid-defaults.conf
     remote_src: yes
+    mode: '0644'
   when: not ansible_facts['files']['/etc/sanoid/sanoid-defaults.conf'] is defined
 
 # Main pool dataset sections

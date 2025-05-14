@@ -4,7 +4,7 @@
 sanoid_datasets:
   - name: zroot
     template: system
-  - name: zroot/home
+  - name: zroot/data
     template: data
 
 sanoid_distroid_datasets:
