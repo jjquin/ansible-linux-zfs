@@ -1,0 +1,39 @@
+---
+- name: Test distro_id extraction and show system facts
+  hosts: localhost
+  gather_facts: yes
+  become: false
+
+  tasks:
+    - name: Read /etc/os-release
+      ansible.builtin.slurp:
+        src: /etc/os-release
+      register: os_release_content
+
+    - name: Parse os-release and set distro_id fact
+      set_fact:
+        distro_id: >-
+          {{
+            (
+              os_release_content.content
+              | b64decode
+              | regex_findall('^ID=([a-zA-Z0-9_\\-]+)', multiline=True)
+              | first
+            ) | default('unknown')
+          }}
+
+    - name: Show detected distro_id (from /etc/os-release)
+      debug:
+        msg: "Detected distro_id is {{ distro_id }}"
+
+    - name: Show ansible_lsb.id (LSB ID)
+      debug:
+        msg: "ansible_lsb.id is {{ ansible_lsb.id | default('not set') }}"
+
+    - name: Show ansible_distribution
+      debug:
+        msg: "ansible_distribution is {{ ansible_distribution }}"
+
+    - name: Show /etc/os-release contents
+      debug:
+        msg: "{{ os_release_content.content | b64decode }}"
