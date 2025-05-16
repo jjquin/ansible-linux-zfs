@@ -1,8 +1,12 @@
 ---
-- name: Import dataset tasks
-  ansible.builtin.import_tasks: zfs_setup_datasets.yml
-  tags: zfs_setup_datasets
-
 - name: ZFS Setup tasks
-  ansible.builtin.import_tasks: zfs_setup_configure.yml
+  ansible.builtin.import_tasks: zfs_configure.yml
   tags: zfs_setup_configure
+
+- name: ZFS Snapshots and Replications
+  ansible.builtin.import_tasks: zfs_backup.yml
+  tags: zfs_setup_backup
+
+- name: ZFS Scrub tasks
+  ansible.builtin.import_tasks: zfs_scrub.yml
+  tags: zfs_setup_scrub

@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+
+[Unit]
+Description=Watch for {{ pool }} device
+
+[Path]
+PathExists=/dev/disk/by-id/{{ disk_id }}
+Unit=zfs-archive-import.service
+
+[Install]
+WantedBy=multi-user.target

@@ -1,183 +1,70 @@
 ---
-# List of common datasets managed directly
-zfs_setup_datasets:
-  - name: zroot/Reserved
-    properties:
-      refreservation: 100G
-
-  - name: zroot/ROOT
-    properties:
-      exec: on
-      setuid: on
-      devices: on
-      org.zfsbootmenu:active: on
-      org.zfsbootmenu:commandline: "quiet"
-
-  - name: zroot/data
-    properties:
-      exec: on
-      mountpoint: /home
-      canmount: no
-
-  - name: zroot/data/jj
-    properties:
-      canmount: no
-
-  - name: zroot/data/jj/Vaults
-    properties:
-      recordsize: 16K
-      compression: zstd-1
-      systemd.after: home-jj.mount
-      exec: off
-
-  - name: zroot/data/jj/Downloads
-    properties:
-      systemd.after: home-jj.mount
-
-  - name: zroot/data/jj/Code
-    properties:
-      recordsize: 16K
-      compression: zstd-1
-      systemd.after: home-jj.mount
-
-  - name: zroot/data/jj/Media
-    properties:
-      recordsize: 1M
-      compression: zle
-      systemd.after: home-jj.mount
-      exec: off
-
-  - name: zroot/data/jj/Books
-    properties:
-      recordsize: 64K
-      compression: zstd-1
-      systemd.after: home-jj.mount
-      exec: off
-
-  - name: zroot/data/jj/flatpak
-    properties:
-      mountpoint: /home/jj/.var
-      systemd.after: home-jj.mount
-
-  - name: zroot/data/leah
-    properties:
-      canmount: no
-
-  - name: zroot/data/leah/Documents
-    properties:
-      recordsize: 16K
-      compression: zstd-1
-      systemd.after: home-leah.mount
-
-  - name: zroot/data/leah/Downloads
-    properties:
-      systemd.after: home-leah.mount
-
-  - name: zroot/data/leah/Media
-    properties:
-      recordsize: 1M
-      compression: zle
-      systemd.after: home-leah.mount
-
-  - name: zroot/data/leah/flatpak
-    properties:
-      mountpoint: /home/leah/.var
-      systemd.after: home-leah.mount
-
-  - name: zroot/data/Shared
-    properties:
-      mountpoint: /home/Shared
-      exec: off
-
-  - name: zroot/data/Shared/Documents
-    properties:
-      recordsize: 16K
-      compression: zstd-1
-
-  - name: zroot/data/Shared/Music
-    properties:
-      recordsize: 1M
-      compression: zle
-
-  - name: zroot/data/Shared/Pictures
-    properties:
-      recordsize: 1M
-      compression: zle
-
-  - name: zroot/virt
-    properties:
-      exec: on
-      devices: on
-      setuid: on
-      mountpoint: /var/lib
-      canmount: no
-
-  - name: zroot/virt/docker
-    properties: {}
-
-  - name: zroot/virt/podman
-    properties: {}
-
-  - name: zroot/virt/libvirt
-    properties:
-      recordsize: 1M
-      compression: zle
-
-  - name: zroot/pkgs
-    properties:
-      exec: on
-
-  - name: zroot/pkgs/flatpak
-    properties:
-      mountpoint: /var/lib/flatpak
-
-  - name: zroot/pkgs/nix
-    properties:
-      mountpoint: /nix
-
-# List of distroids (distro IDs) to manage
-zfs_setup_distroids:
-  - manjaro
-  - arch
-  - debian
-
-# Relative datasets to create for each distroid
-zfs_setup_distroid_datasets:
-  - name: ""
-    properties:
-      mountpoint: /
-      canmount: noauto
-      org.zfsbootmenu:bootfs: on
-  - name: var
-    properties:
-      mountpoint: none
-      exec: off
-      devices: off
-      setuid: off
-  - name: var/log
-    properties:
-      mountpoint: legacy
-    legacy_mount: /var/log
-  - name: home
-    properties:
-      devices: off
-      setuid: off
-      mountpoint: none
-  - name: home/jj
-    properties:
-      mountpoint: legacy
-    legacy_mount: /home/jj
-  - name: home/leah
-    properties:
-      mountpoint: legacy
-    legacy_mount: /home/leah
-
 zfs_setup_pools:
   - zroot
   - zarchive-4
   - zarchive-5
 
+zfs_setup_services:
+  - zfs-import-cache.service
+  - zfs.target
+  - zfs-import.target
+  - zfs-zed.service
+
+zfs_setup_external_scripts:
+  - syncoid-replicate.sh
+  - zfs-archive-export.sh
+  - zfs-archive-import.sh
+
+zfs_setup_external_services:
+  - syncoid-replicate.service
+  - syncoid-replicate.timer
+  - zfs-archive-import.service
+
 zfs_setup_hostid: dadab0de
 
 zfs_setup_list_cacher_target: /usr/lib/zfs-linux/zed.d/history_event-zfs-list-cacher.sh
 zfs_setup_list_cacher_symlink: /etc/zfs/zed.d/history_event-zfs-list-cacher.sh
+
+zfs_setup_sanoid_datasets:
+  - name: zroot
+    template: system
+  - name: zroot/data
+    template: data
+
+zfs_setup_sanoid_distroid_datasets:
+  - name: home
+    template: data
+
+zfs_setup_sanoid_templates:
+  system:
+    hourly: 24
+    daily: 7
+    weekly: 4
+    monthly: 3
+    autosnap: 'yes'
+    autoprune: 'yes'
+  data:
+    hourly: 48
+    daily: 30
+    weekly: 12
+    monthly: 12
+    autosnap: 'yes'
+    autoprune: 'yes'
+  archive_system:
+    daily: 30
+    monthly: 3
+    yearly: 1
+    autosnap: 'no'
+    autoprune: 'yes'
+  archive_data:
+    daily: 168 # 6 months
+    monthly: 12
+    yearly: 2
+    autosnap: 'no'
+    autoprune: 'yes'
+
+zfs_setup_external_pools:
+  - name: zarchive-4
+    by_id: usb-Seagate_BUP_BK_NA7PAJE1-0:0
+  - name: zarchive-5
+    by_id: usb-Seagate_Portable_NACT1DQZ-0:0

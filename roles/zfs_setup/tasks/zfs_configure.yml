@@ -25,15 +25,18 @@
     state: link
     force: true
 
+# Loop over all pools for facts and cachefile
 - name: Gather ZFS pool facts
   community.general.zpool_facts:
-    pool: "{{ zfs_setup_pool }}"
+    pool: "{{ item }}"
   register: zpool_facts
+  loop: "{{ zfs_setup_pools }}"
 
-- name: Set zpool cachefile if needed
-  ansible.builtin.command: "zpool set cachefile=/etc/zfs/zpool.cache {{ zfs_setup_pool }}"
+- name: Set zpool cachefile if needed for all pools
+  ansible.builtin.command: "zpool set cachefile=/etc/zfs/zpool.cache {{ item }}"
   changed_when: false
-  when: zpool_facts.ansible_facts.ansible_zfs_setup_pools[0].cachefile != "/etc/zfs/zpool.cache"
+  when: zpool_facts.results[loop.index0].ansible_facts.ansible_zfs_pools[0].cachefile != "/etc/zfs/zpool.cache"
+  loop: "{{ zfs_setup_pools }}"
 
 - name: Stat /etc/hostid
   ansible.builtin.stat:
@@ -71,12 +74,7 @@
     name: "{{ item }}"
     enabled: true
     state: started
-    daemon_reload: true
-  loop:
-    - zfs-import-cache.service
-    - zfs.target
-    - zfs-import.target
-    - zfs-zed.service
+  loop: "{{ zfs_setup_services }}"
 
 - name: Ensure dracut config for ZFS is present
   ansible.builtin.copy:
@@ -92,80 +90,6 @@
   ansible.builtin.copy:
     dest: /etc/modprobe.d/zfs.conf
     content: |
-      options zfs zfs_setup_arc_max={{ (ansible_memtotal_mb * 1024 * 1024 * zfs_setup_arc_max_percent) | int }}
+      options zfs zfs_arc_max={{ (ansible_memtotal_mb * 1024 * 1024 * zfs_setup_arc_max_percent) | int }}
     mode: '0644'
   notify: Reload systemd
-
-- name: Configure journald override for zfs
-  ansible.builtin.copy:
-    dest: /etc/systemd/journald.conf.d/zfs.conf
-    content: |
-      [Journal]
-      Storage=persistent
-      Compress=no
-      SystemMaxSize=250M
-      SystemMaxFileSize=50M
-    mode: '0644'
-  notify: Restart journald
-
-- name: Ensure logrotate does not compress logs
-  ansible.builtin.lineinfile:
-    path: /etc/logrotate.conf
-    regexp: '^compress$'
-    state: absent
-
-- name: Ensure nocompress is present in logrotate.conf
-  ansible.builtin.lineinfile:
-    path: /etc/logrotate.conf
-    line: 'nocompress'
-    state: present
-
-# Check for zfs-scrub@.service in all standard locations
-- name: Check for zfs-scrub@.service in all standard locations
-  ansible.builtin.stat:
-    path: "{{ item }}"
-  loop:
-    - /etc/systemd/system/zfs-scrub@.service
-    - /usr/lib/systemd/system/zfs-scrub@.service
-    - /lib/systemd/system/zfs-scrub@.service
-  register: zfs_setup_scrub_service_checks
-
-- name: Set fact if zfs-scrub@.service exists
-  ansible.builtin.set_fact:
-    zfs_setup_scrub_service_exists: "{{ zfs_setup_scrub_service_checks.results | selectattr('stat.exists') | list | length > 0 }}"
-
-- name: Copy zfs-scrub@.service if missing everywhere
-  ansible.builtin.copy:
-    src: files/zfs-scrub@.service
-    dest: /etc/systemd/system/zfs-scrub@.service
-    mode: '0644'
-  when: not zfs_setup_scrub_service_exists
-
-# Check for zfs-scrub-monthly@.timer in all standard locations
-- name: Check for zfs-scrub-monthly@.timer in all standard locations
-  ansible.builtin.stat:
-    path: "{{ item }}"
-  loop:
-    - /etc/systemd/system/zfs-scrub-monthly@.timer
-    - /usr/lib/systemd/system/zfs-scrub-monthly@.timer
-    - /lib/systemd/system/zfs-scrub-monthly@.timer
-  register: zfs_setup_scrub_monthly_timer_checks
-
-- name: Set fact if zfs-scrub-monthly@.timer exists
-  ansible.builtin.set_fact:
-    zfs_setup_scrub_monthly_timer_exists: "{{ zfs_setup_scrub_monthly_timer_checks.results | selectattr('stat.exists') | list | length > 0 }}"
-
-- name: Copy zfs-scrub-monthly@.timer if missing everywhere
-  ansible.builtin.copy:
-    src: files/zfs-scrub-monthly@.timer
-    dest: /etc/systemd/system/zfs-scrub-monthly@.timer
-    mode: '0644'
-  when: not zfs_setup_scrub_monthly_timer_exists
-
-# Enable the monthly scrub timer for all pools
-- name: Enable ZFS monthly scrub timer for all pools
-  ansible.builtin.systemd:
-    name: "zfs-scrub-monthly@{{ item }}.timer"
-    enabled: true
-    state: started
-  loop: "{{ zfs_setup_pools }}"

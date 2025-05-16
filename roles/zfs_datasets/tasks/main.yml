@@ -1,0 +1,122 @@
+---
+- name: Ensure common ZFS datasets exist and have correct properties
+  community.general.zfs:
+    name: "{{ item.name }}"
+    state: present
+    extra_zfs_properties: "{{ item.properties }}"
+  loop: "{{ zfs_datasets_common }}"
+
+- name: Ensure distroid ZFS datasets exist and have correct properties
+  community.general.zfs:
+    name: "zroot/ROOT/{{ distroid }}{{ '/' + item.name if item.name != '' else '' }}"
+    state: present
+    extra_zfs_properties: "{{ item.properties }}"
+  loop: "{{ zfs_datasets_by_distro }}"
+  loop_control:
+    loop_var: item
+  vars:
+    distroid: "{{ distroid_item }}"
+  with_items: "{{ zfs_datasets_distroids }}"
+
+- name: Gather all ZFS datasets
+  community.general.zfs_facts:
+    name: zroot
+    recurse: true
+  register: zfs_datasets_facts
+
+- name: Report mismatched zroot dataset properties
+  ansible.builtin.debug:
+    msg: "zroot property mismatch: {{ item.key }} expected={{ item.value }}, actual={{ zfs_datasets_zroot_actual[item.key] | default('MISSING') }}"
+  loop: "{{ zfs_datasets_zroot_expected | dict2items }}"
+  when: zfs_datasets_zroot_expected[item.key] != zfs_datasets_zroot_actual[item.key] | default(None)
+
+- name: Build list of managed datasets (split for linting)
+  ansible.builtin.set_fact:
+    zfs_datasets_managed_common: "{{ zfs_datasets_common | map(attribute='name') | list }}"
+    zfs_datasets_managed_distro: >-
+      {{
+        zfs_datasets_distroids
+        | map('extract', zfs_datasets_by_distro)
+        | map('map', attribute='name')
+        | sum(start=[])
+        | map('regex_replace', '^', 'zroot/ROOT/')
+        | list
+      }}
+    zfs_datasets_managed: "{{ zfs_datasets_managed_common + zfs_datasets_managed_distro }}"
+
+- name: Extract existing dataset names
+  ansible.builtin.set_fact:
+    zfs_datasets_existing: "{{ zfs_datasets_facts.ansible_facts.ansible_zfs_datasets | map(attribute='name') | list }}"
+  tags: [zfs_datasets_common, zfs_datasets_by_distro]
+
+- name: Find unmanaged datasets
+  ansible.builtin.set_fact:
+    zfs_datasets_unmanaged: "{{ zfs_datasets_existing | difference(zfs_datasets_managed) }}"
+
+- name: Report unmanaged datasets
+  ansible.builtin.debug:
+    msg: "Unmanaged ZFS datasets: {{ zfs_datasets_unmanaged }}"
+  when: zfs_datasets_unmanaged | length > 0
+
+- name: Ensure fstab entries for distroid legacy mountpoints
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    line: "zroot/ROOT/{{ distroid }}/{{ item.name }} {{ item.legacy_mount }} zfs defaults 0 0"
+    state: present
+    create: yes
+    mode: '0644'
+  loop: "{{ zfs_datasets_by_distro | selectattr('properties.legacy_mount', 'defined') | list }}"
+  loop_control:
+    label: "{{ distroid }}/{{ item.name }}"
+  vars:
+    distroid: "{{ distroid_item }}"
+  with_items: "{{ zfs_datasets_distroids }}"
+
+- name: Gather current mount facts
+  ansible.builtin.mount_facts:
+
+- name: Get ZFS mountpoints from facts
+  ansible.builtin.set_fact:
+    zfs_datasets_mounted: >-
+      {{
+        zfs_datasets_facts.ansible_facts.ansible_zfs_datasets
+        | selectattr('mounted', 'equalto', True)
+        | map(attribute='mountpoint')
+        | list
+      }}
+
+- name: Build list of expected mountpoints (including legacy)
+  ansible.builtin.set_fact:
+    zfs_datasets_expected_mountpoints: >-
+      {{
+        (zfs_datasets_common
+          | selectattr('properties.mountpoint', 'defined')
+          | map(attribute='properties.mountpoint')
+          | list)
+        +
+        (zfs_datasets_by_distro
+          | selectattr('properties.mountpoint', 'defined')
+          | map(attribute='properties.mountpoint')
+          | list)
+        +
+        (zfs_datasets_by_distro
+          | selectattr('properties.legacy_mount', 'defined')
+          | map(attribute='properties.legacy_mount')
+          | list)
+      }}
+
+- name: Find missing mounts
+  ansible.builtin.set_fact:
+    zfs_datasets_missing_mounts: >-
+      {{
+        zfs_datasets_expected_mountpoints
+        | difference(
+            zfs_datasets_mounted
+            + (zfs_datasets_mounts.mounts | map(attribute='mount')) | list
+          )
+      }}
+
+- name: Report missing ZFS mounts
+  ansible.builtin.debug:
+    msg: "Missing ZFS mounts: {{ zfs_datasets_missing_mounts }}"
+  when: zfs_datasets_missing_mounts | length > 0

@@ -1,0 +1,6 @@
+[Unit]
+Description=Syncoid Replication to External ZFS Archive
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/syncoid-replicate.sh

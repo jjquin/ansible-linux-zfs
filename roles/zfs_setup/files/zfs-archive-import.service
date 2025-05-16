@@ -1,0 +1,6 @@
+[Unit]
+Description=Import ZFS Archive Pool and Resume Syncoid
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/zfs-archive-import.sh

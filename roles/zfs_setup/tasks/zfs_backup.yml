@@ -1,4 +1,17 @@
 ---
+- name: Install sanoid on Debian/Ubuntu
+  ansible.builtin.apt:
+    name: sanoid
+    state: present
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install sanoid on Arch/Manjaro (with yay)
+  community.general.aur:
+    name: sanoid
+    use: yay
+    state: present
+  when: ansible_facts['os_family'] == "Archlinux"
+
 - name: Ensure /etc/sanoid directory exists
   ansible.builtin.file:
     path: /etc/sanoid
@@ -91,3 +104,43 @@
     mode: '0644'
     state: present
   loop: "{{ sanoid_templates | dict2items | subelements('value') }}"
+
+# External backup scripts, services, and path units
+- name: Copy external scripts
+  ansible.builtin.copy:
+    src: "files/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    mode: '0755'
+  loop: "{{ zfs_setup_external_scripts }}"
+
+- name: Copy external services
+  ansible.builtin.copy:
+    src: "files/{{ item }}"
+    dest: "/etc/systemd/system/{{ item }}"
+    mode: '0644'
+  loop: "{{ zfs_setup_external_services }}"
+  notify: Reload systemd
+
+- name: Copy zfs-archive path units for all external pools
+  ansible.builtin.template:
+    src: zfs-archive-path.j2
+    dest: "/etc/systemd/system/zfs-archive-{{ item.name }}.path"
+    mode: '0644'
+  loop: "{{ zfs_setup_external_pools }}"
+  notify: Reload systemd
+  vars:
+    pool: "{{ item.name }}"
+    disk_id: "{{ item.by_id }}"
+
+- name: Enable syncoid-replicate timer
+  ansible.builtin.systemd:
+    name: syncoid-replicate.timer
+    enabled: true
+    state: started
+
+- name: Enable all zfs-archive path units
+  ansible.builtin.systemd:
+    name: "zfs-archive-{{ item.name }}.path"
+    enabled: true
+    state: started
+  loop: "{{ zfs_setup_external_pools }}"

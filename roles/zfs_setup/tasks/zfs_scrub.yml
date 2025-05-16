@@ -1,0 +1,50 @@
+---
+# Check for zfs-scrub@.service in all standard locations
+- name: Check for zfs-scrub@.service in all standard locations
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - /etc/systemd/system/zfs-scrub@.service
+    - /usr/lib/systemd/system/zfs-scrub@.service
+    - /lib/systemd/system/zfs-scrub@.service
+  register: zfs_setup_scrub_service_checks
+
+- name: Set fact if zfs-scrub@.service exists
+  ansible.builtin.set_fact:
+    zfs_setup_scrub_service_exists: "{{ zfs_setup_scrub_service_checks.results | selectattr('stat.exists') | list | length > 0 }}"
+
+- name: Copy zfs-scrub@.service if missing everywhere
+  ansible.builtin.copy:
+    src: files/zfs-scrub@.service
+    dest: /etc/systemd/system/zfs-scrub@.service
+    mode: '0644'
+  when: not zfs_setup_scrub_service_exists
+
+# Check for zfs-scrub-monthly@.timer in all standard locations
+- name: Check for zfs-scrub-monthly@.timer in all standard locations
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - /etc/systemd/system/zfs-scrub-monthly@.timer
+    - /usr/lib/systemd/system/zfs-scrub-monthly@.timer
+    - /lib/systemd/system/zfs-scrub-monthly@.timer
+  register: zfs_setup_scrub_monthly_timer_checks
+
+- name: Set fact if zfs-scrub-monthly@.timer exists
+  ansible.builtin.set_fact:
+    zfs_setup_scrub_monthly_timer_exists: "{{ zfs_setup_scrub_monthly_timer_checks.results | selectattr('stat.exists') | list | length > 0 }}"
+
+- name: Copy zfs-scrub-monthly@.timer if missing everywhere
+  ansible.builtin.copy:
+    src: files/zfs-scrub-monthly@.timer
+    dest: /etc/systemd/system/zfs-scrub-monthly@.timer
+    mode: '0644'
+  when: not zfs_setup_scrub_monthly_timer_exists
+
+# Enable the monthly scrub timer for all pools
+- name: Enable ZFS monthly scrub timer for all pools
+  ansible.builtin.systemd:
+    name: "zfs-scrub-monthly@{{ item }}.timer"
+    enabled: true
+    state: started
+  loop: "{{ zfs_setup_pools }}"
