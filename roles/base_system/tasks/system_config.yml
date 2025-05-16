@@ -1,0 +1,72 @@
+---
+- name: Ensure locale is present (Debian/Ubuntu)
+  community.general.locale_gen:
+    name: "{{ base_system_locale }}"
+    state: present
+  when: distro_id in ['debian', 'ubuntu']
+
+- name: Set system locale (Debian/Ubuntu)
+  ansible.builtin.copy:
+    dest: /etc/default/locale
+    content: |
+      LANG={{ base_system_locale }}
+    mode: '0644'
+  when: distro_id in ['debian', 'ubuntu']
+
+- name: Ensure locale is uncommented in /etc/locale.gen (Arch/Manjaro)
+  ansible.builtin.lineinfile:
+    path: /etc/locale.gen
+    regexp: '^#?{{ base_system_locale }}'
+    line: '{{ base_system_locale }} UTF-8'
+    state: present
+  when: distro_id in ['arch', 'manjaro']
+  notify: Generate locales
+
+- name: Set LANG in /etc/locale.conf (Arch/Manjaro)
+  ansible.builtin.copy:
+    dest: /etc/locale.conf
+    content: "LANG={{ base_system_locale }}\n"
+    mode: '0644'
+  when: distro_id in ['arch', 'manjaro']
+
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ base_system_timezone }}"
+
+- name: Copy global environment variables script
+  ansible.builtin.copy:
+    src: custom_env.sh
+    dest: /etc/profile.d/custom_env.sh
+    mode: '0644'
+
+- name: Install global zshenv
+  ansible.builtin.copy:
+    src: zshenv
+    dest: /etc/zsh/zshenv
+    mode: '0644'
+
+- name: Install global zprofile
+  ansible.builtin.copy:
+    src: zprofile
+    dest: /etc/zsh/zprofile
+    mode: '0644'
+
+- name: Template global systemd-resolved config
+  ansible.builtin.template:
+    src: resolved.conf.j2
+    dest: /etc/systemd/resolved.conf
+    mode: '0644'
+  notify: Restart systemd-resolved
+
+- name: Ensure /etc/resolv.conf is a symlink to the systemd-resolved stub
+  ansible.builtin.file:
+    src: /run/systemd/resolve/stub-resolv.conf
+    dest: /etc/resolv.conf
+    state: link
+
+- name: Enable and start systemd services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  loop: "{{ base_system_services }}"

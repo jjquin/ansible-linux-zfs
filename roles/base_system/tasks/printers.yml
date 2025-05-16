@@ -1,0 +1,20 @@
+---
+- name: Install printer packages and drivers
+  community.general.pacman:
+    name: "{{ base_system_printer_pkgs }}"
+    state: present
+
+- name: Ensure CUPS service is enabled and started
+  ansible.builtin.systemd:
+    name: org.cups.cupsd
+    enabled: yes
+    state: started
+
+- name: Add Brother HL-L2380DW printer to CUPS
+  community.general.cups_printer:
+    name: "{{ base_system_printer_name }}"
+    uri: "{{ base_system_printer_uri }}"
+    model: "{{ base_system_printer_model }}"
+    state: present
+    enabled: yes
+    default: "{{ base_system_printer_is_default }}"

@@ -1,0 +1,13 @@
+---
+system_update_supported_distros:
+  - arch
+  - manjaro
+  - debian
+  - ubuntu
+
+system_update_arch_pkgs:
+  - linux
+  - linux-headers
+  - zfs-linux
+  - zfs-utils
+  # add any other essentials

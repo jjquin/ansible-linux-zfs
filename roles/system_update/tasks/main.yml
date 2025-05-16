@@ -1,0 +1,10 @@
+---
+- name: "Include distro-specific base system tasks"
+  ansible.builtin.include_tasks: "{{ distro_id }}.yml"
+  when: distro_id in system_update_supported_distros
+  tags: [system_update]
+
+- name: "Install yay and configure makepkg.conf on Arch-based distros"
+  ansible.builtin.include_tasks: yay_install.yml
+  when: distro_id in ['arch', 'manjaro']
+  tags: [yay_install]

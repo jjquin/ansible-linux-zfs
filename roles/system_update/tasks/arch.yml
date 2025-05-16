@@ -1,0 +1,97 @@
+---
+- name: Ensure archzfs GPG key is present
+  ansible.builtin.command: pacman-key --list-keys F75D9D76
+  register: pacman_key_check
+  ignore_errors: true
+  changed_when: false
+
+- name: Initialize and sign pacman keys for archzfs if missing
+  ansible.builtin.command: "{{ item }}"
+  loop:
+    - pacman-key --init
+    - pacman-key --populate
+    - pacman-key --lsign-key F75D9D76
+  changed_when: true
+  when: pacman_key_check.rc != 0
+
+- name: Install archzfs repo config
+  ansible.builtin.copy:
+    dest: /etc/pacman.conf.d/archzfs.conf
+    content: |
+      [archzfs]
+      Server = https://archzfs.com/$repo/$arch
+    mode: '0644'
+
+- name: Ensure kernel, ZFS, and base packages are installed
+  ansible.builtin.package:
+    name: "{{ system_update_arch_pkgs + base_system_base_pkgs }}"
+    state: present
+
+- name: Update pacman package cache
+  community.general.pacman:
+    update_cache: yes
+
+- name: Check for available updates
+  ansible.builtin.command: checkupdates
+  register: checkupdates_out
+  changed_when: false
+  failed_when: false
+
+- name: Set fact if updates are available
+  ansible.builtin.set_fact:
+    updates_available: "{{ checkupdates_out.stdout_lines | length > 0 }}"
+
+- name: Check if a kernel update is pending
+  ansible.builtin.set_fact:
+    kernel_update_pending: "{{ checkupdates_out.stdout_lines | select('match', '^linux ') | list | length > 0 }}"
+
+- name: Get new kernel version (if pending)
+  ansible.builtin.command: pacman -Si linux | awk '/Version/ {print $3}'
+  register: new_kernel_version
+  changed_when: false
+  failed_when: false
+  when: kernel_update_pending
+
+- name: Get zfs-linux dependencies (if kernel update pending)
+  ansible.builtin.command: pacman -Si zfs-linux | awk '/Depends On/ {print $0}'
+  register: zfs_linux_deps
+  changed_when: false
+  failed_when: false
+  when: kernel_update_pending
+
+- name: Set fact if zfs-linux matches new kernel
+  ansible.builtin.set_fact:
+    zfs_kmod_matches: "{{ new_kernel_version.stdout in zfs_linux_deps.stdout }}"
+  when: kernel_update_pending
+
+- block:
+    - name: Take ZFS snapshot before update (Sanoid-friendly name)
+      ansible.builtin.command: >
+        zfs snapshot "zroot/ROOT/{{ distro_id }}@system_update-{{ ansible_date_time.iso8601_basic_short }}"
+      changed_when: true
+
+    - name: Upgrade all packages (system update)
+      community.general.pacman:
+        upgrade: yes
+  when: updates_available and (not kernel_update_pending or (kernel_update_pending and zfs_kmod_matches | default(false)))
+
+- name: Print notice if kernel and ZFS kmod do not match
+  ansible.builtin.debug:
+    msg: |
+      Kernel update is available ({{ new_kernel_version.stdout }}), but zfs-linux for the new kernel is not yet in the repo.
+      Skipping system update. Please wait for the ArchZFS repo to catch up.
+  when: updates_available and kernel_update_pending and not zfs_kmod_matches | default(false)
+
+- name: Print notice if no updates are available
+  ansible.builtin.debug:
+    msg: "No package updates are available. Skipping system update."
+  when: not updates_available
+
+- name: Set makepkg.conf settings
+  ansible.builtin.lineinfile:
+    path: /etc/makepkg.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop:
+    - { regexp: '^#?MAKEFLAGS=', line: 'MAKEFLAGS="-j{{ ansible_processor_vcpus | default(ansible_processor_cores) | default(2) }}"' }
+    - { regexp: '^#?COMPRESSXZ=', line: 'COMPRESSXZ=(xz -c -z - --threads=0)' }

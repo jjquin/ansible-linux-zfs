@@ -1,0 +1,52 @@
+---
+- name: Stat pacman mirrorlist
+  ansible.builtin.stat:
+    path: /etc/pacman.d/mirrorlist
+  register: stat_mirrorlist
+
+- name: Check if at least 5 of top 10 mirrors are United States
+  ansible.builtin.shell: |
+    set -o pipefail
+    head -n 10 /etc/pacman.d/mirrorlist | grep -c United_States
+  register: us_mirror_count
+  changed_when: false
+
+- name: Refresh pacman mirrors if not enough US mirrors or mirrorlist is old
+  ansible.builtin.command: pacman-mirrors --fasttrack 10 --country United_States
+  when: us_mirror_count.stdout | int < 5 or (ansible_date_time.epoch | int - (stat_mirrorlist.stat.mtime | default(0)) > 604800)
+  changed_when: true
+
+- name: Update and upgrade all packages
+  community.general.pacman:
+    update_cache: yes
+    upgrade: yes
+
+- name: Get installed kernel package name
+  ansible.builtin.command: mhwd-kernel -li
+  register: kernel_list
+  changed_when: false
+
+- name: Parse installed kernel name
+  ansible.builtin.set_fact:
+    manjaro_kernel: "{{ kernel_list.stdout_lines | select('search', 'installed') | map('regex_search', 'linux[0-9]+') | select('string') | list | first }}"
+
+- name: Install ZFS, kernel headers, and base packages
+  community.general.pacman:
+    name:
+      - "{{ manjaro_kernel }}-zfs"
+      - zfs-utils
+      - "{{ manjaro_kernel }}-headers"
+      - "{{ base_system_base_pkgs }}"
+    state: present
+
+- name: Set MAKEFLAGS in /etc/makepkg.conf
+  ansible.builtin.lineinfile:
+    path: /etc/makepkg.conf
+    regexp: '^#?MAKEFLAGS='
+    line: 'MAKEFLAGS="-j{{ ansible_processor_vcpus | default(ansible_processor_cores) | default(2) }}"'
+
+- name: Set COMPRESSXZ in /etc/makepkg.conf
+  ansible.builtin.lineinfile:
+    path: /etc/makepkg.conf
+    regexp: '^#?COMPRESSXZ='
+    line: 'COMPRESSXZ=(xz -c -z - --threads=0)'

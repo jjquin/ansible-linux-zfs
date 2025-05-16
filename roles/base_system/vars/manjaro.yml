@@ -1,0 +1,48 @@
+---
+base_system_base_pkgs:
+  - base
+  - base-devel
+  - sudo
+  - git
+  - vim
+  - curl
+  - wget
+  - less
+  - nano
+  - lsb-release
+  - python
+  - python-pip
+  - rsync
+  - unzip
+
+base_system_audio_pkgs:
+  - pipewire
+  - pipewire-alsa
+  - pipewire-pulse
+  - pipewire-jack
+  - wireplumber
+  - alsa-utils
+  - pavucontrol
+
+base_system_bluetooth_pkgs:
+  - bluez
+  - bluez-utils
+
+base_system_common_hw_pkgs:
+  - ntfs-3g
+  - fwupd
+  - lm_sensors
+
+base_system_host_packages:
+  parents-pc:
+    - xf86-video-amdgpu
+    - amd-ucode
+    - mesa
+    - vulkan-radeon
+    - libva-mesa-driver
+  thinkpad-t450:
+    - xf86-video-intel
+    - intel-ucode
+    - tlp
+    - acpi_call
+    - thinkpad-acpi

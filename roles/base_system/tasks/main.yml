@@ -1,0 +1,21 @@
+---
+- name: "Include distro-specific variables"
+  ansible.builtin.include_vars: "{{ distro_id }}.yml"
+  when: distro_id in base_system_supported_distros
+
+- name: "Include base_hardware tasks"
+  ansible.builtin.include_tasks: base_hardware.yml
+  tags: [base_hardware]
+
+- name: "Include system_config tasks"
+  ansible.builtin.include_tasks: system_config.yml
+  tags: [system_config]
+
+- name: "Include host-specific hardware tasks"
+  ansible.builtin.include_tasks: "{{ inventory_hostname }}.yml"
+  when: inventory_hostname in base_system_hostnames
+  tags: [unique_hardware]
+
+- name: "Include printers tasks"
+  ansible.builtin.include_tasks: printers.yml
+  tags: [printers]

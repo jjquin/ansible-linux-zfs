@@ -1,0 +1,37 @@
+---
+base_system_supported_distros:
+  - arch
+  - manjaro
+  - debian
+  - ubuntu
+
+base_system_locale: "en_US.UTF-8"
+base_system_timezone: "America/New_York"
+
+base_system_services:
+  - systemd-timesyncd
+  - systemd-resolved
+  - NetworkManager
+  - bluetooth
+  - reflector.timer
+
+base_system_hostnames:
+  - thinkpad-t450
+  - parents-pc
+
+base_system_dns_primary: "9.9.9.9#dns.quad9.net 149.112.112.112#dns.quad9.net"
+base_system_dns_fallback: "192.168.1.1"
+base_system_dns_over_tls: "yes"
+base_system_dns_domains: "."
+base_system_dnssec: "yes"
+
+# Printer variables
+base_system_printer_pkgs:
+  - cups
+  - system-config-printer
+  - brlaser  # Open-source Brother driver, works for many models
+
+base_system_printer_name: "Brother_HL-L2380DW"
+base_system_printer_uri: "lpd://172.20.60.200/BINARY_P1"  # Replace with your printer's IP
+base_system_printer_model: "drv:///brlaser.drv/brl2380dw.ppd"  # brlaser PPD, generic for this model
+base_system_printer_is_default: true

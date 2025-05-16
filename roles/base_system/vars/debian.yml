@@ -1,0 +1,48 @@
+---
+base_system_base_pkgs:
+  - sudo
+  - git
+  - vim
+  - curl
+  - wget
+  - less
+  - nano
+  - lsb-release
+  - python3
+  - python3-pip
+  - rsync
+  - unzip
+
+base_system_audio_pkgs:
+  - pipewire
+  - pipewire-audio
+  - alsa-utils
+  - pavucontrol
+
+base_system_bluetooth_pkgs:
+  - bluez
+  - bluez-tools
+  - pulseaudio-module-bluetooth
+
+base_system_common_hw_pkgs:
+  - ntfs-3g
+  - fwupd
+  - lm-sensors
+
+base_system_host_pkgs:
+  parents-pc:
+    - amd64-microcode
+    - mesa-vulkan-drivers
+    - mesa-utils
+    - xserver-xorg-video-amdgpu
+    - vulkan-utils
+  thinkpad-t450:
+    - intel-microcode
+    - xserver-xorg-video-intel
+    - tlp
+    - acpi-call-dkms
+    - tp-smapi-dkms
+    - i2c-tools
+    - rfkill
+    - powertop
+    - nvme-cli

@@ -1,0 +1,32 @@
+---
+- name: Install base packages
+  community.general.package:
+    name: "{{ base_system_manjaro_pkgs }}"
+    state: present
+
+- name: Install audio packages
+  community.general.package:
+    name: "{{ base_system_audio_pkgs }}"
+    state: present
+
+- name: Install bluetooth packages
+  community.general.package:
+    name: "{{ base_system_bluetooth_pkgs }}"
+    state: present
+
+- name: Install other common hardware packages
+  community.general.package:
+    name: "{{ base_system_common_hw_pkgs }}"
+    state: present
+
+- name: Install host-specific packages for parents-pc
+  community.general.package:
+    name: "{{ base_system_host_pkgs['parents-pc'] | default([]) }}"
+    state: present
+  when: inventory_hostname == 'parents-pc'
+
+- name: Install host-specific packages for thinkpad-t450
+  community.general.package:
+    name: "{{ base_system_host_pkgs['thinkpad-t450'] | default([]) }}"
+    state: present
+  when: inventory_hostname == 'thinkpad-t450'

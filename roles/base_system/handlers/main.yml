@@ -1,0 +1,14 @@
+---
+- name: Generate locales
+  ansible.builtin.command: locale-gen
+  when: distro_id in ['arch', 'manjaro']
+  changed_when: true
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Restart systemd-resolved
+  ansible.builtin.systemd:
+    name: systemd-resolved
+    state: restarted
